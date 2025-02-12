@@ -437,8 +437,8 @@ def start():
     for i in range(len(points)):
         angle = np.arctan2(points[i][3][1], points[i][3][0])
         u = rotate_vector(points[i][1], -np.degrees(angle))
-        scaled_vx = np.append(scaled_vx, u[0])
-        scaled_vy = np.append(scaled_vy, u[1])
+        scaled_vx = np.append(scaled_vx, -u[1])
+        scaled_vy = np.append(scaled_vy, u[0])
         # u = change_basis([points[i][3], rotate_vector(points[i][3], 90)], points[i][1])
         # scaled_vx = np.append(scaled_vx, u[1])
         # scaled_vy = np.append(scaled_vy, -u[0])
@@ -451,13 +451,15 @@ def start():
     print(omega)
     print(scaled_vx)
     print(scaled_vy)
+    print(wheel_speeds)
 
     min = wheel_speeds.min()
     max = wheel_speeds.max()
-    wheel_speeds = wheel_speeds[1:]
+    wheel_speeds = wheel_speeds[0:]
     for i in range(len(wheel_speeds)):
         for j in range (len(wheel_speeds[0])):
-            wheel_speeds[i][j] = int(val_map(wheel_speeds[i][j], min, max, -100, 100))
+            wheel_speeds[i][j] = val_map(wheel_speeds[i][j], 0, max, 0, 100) \
+                if wheel_speeds[i][j] > 0 else val_map(wheel_speeds[i][j], min, 0, -100, 0)
 
 
     global max_speed
@@ -516,7 +518,7 @@ def main():
 
     start()
 
-    for i in range(0, len(points) - 1):
+    for i in range(0, len(points)):
         update(i)
         plt.pause(time_per_update)
 

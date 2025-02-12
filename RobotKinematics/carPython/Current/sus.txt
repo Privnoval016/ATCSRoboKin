@@ -10,6 +10,6 @@ $D  X_EXTENT 0.105
 $D  Y_EXTENT 0.150
 
 # denotes the starting position and forward direction of the robot
-$S START (0, 0) (1, 0) MATCH_VELOCITY
-$A ARC (0, 0) (0, 1) (1, 0)
+$S START (0, 1) (1, 0) MATCH_VELOCITY
+$A ARC (0, 1) (0, 0) (1, 0)
 
