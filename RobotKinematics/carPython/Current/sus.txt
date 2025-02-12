@@ -11,5 +11,5 @@ $D  Y_EXTENT 0.150
 
 # denotes the starting position and forward direction of the robot
 $S START (0, 0) (1, 0) MATCH_VELOCITY
-$A LINE (0, 0) (0, 1)
+$A ARC (0, 0) (0, 1) (1, 0)
 
