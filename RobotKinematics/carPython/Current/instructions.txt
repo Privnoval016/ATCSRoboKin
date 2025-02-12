@@ -1,0 +1,59 @@
+# denotes a comment (whitespace used for token separation)
+# Instructions are case-insensitive
+# Instructions are of the form $D/$A/$R <operation> <parameters>
+# Parentheses, commas, and whitespace is automatically omitted
+# any word beginning in '_' is omitted
+# if no $<> is specified in a line, uses the previous $<> in the file
+# Default instruction template
+
+# Operation Indices (enter string or index)
+# "POLYGON": 1,
+# "ARC": 2,
+# "SEMICIRCLE": 3,
+# "LINE": 4,
+# "POINT_TURN": 5,
+
+# All operations can be followed by "MATCH_VELOCITY", "IN_NORMAL", "OUT_NORMAL", "LOCK", or ("TURN" + <angle>)
+# Can specify an angle in degrees after each to offset the direction by that angle ("MATCH_VELOCITY_45" for example)
+
+# Default parameters denoted by $D
+$D  LIN_STEP 10
+$D  ANG_STEP 10
+$D  TIME_SCALE 0.1
+$D  AUTO_TURN 1
+$D  PLOT_VEL 1
+$D  PLOT_DIR 1
+$D  X_EXTENT 0.105
+$D  Y_EXTENT 0.150
+
+# Absolute operation denoted by $A
+
+# Line: $A LINE (x1, y1) (x2, y2)
+$A LINE (0,0) (100,0)
+
+# Arc: $A ARC (x1, y1) (x2, y2) (tangent)
+$A ARC (100,0) (100,100) (0,1)
+
+# Polygon: $A POLYGON (x1, y1) (x2, y2) ... (xn, yn), 0/1 (closed)
+$A POLYGON (100,100) (0,100) (0,0) 1
+
+# Semi-Circle: $A SEMICIRCLE (x_i, y_i) (x_f, y_f) 0/1 (1 if counter-clockwise)
+$A SEMICIRCLE (0,0) (100,0) 0
+
+# Point Turn: $A POINT_TURN (angle in degrees)
+$A POINT_TURN 90
+
+
+# Relative operation (starting point is the last landed point) denoted by $R
+
+# Relative Line: $R LINE (x_f, y_f)
+$R LINE (0,100)
+
+# Relative Arc: $R ARC (x_f, y_f) (tangent)
+$R ARC (100,100) (1,0)
+
+# Relative Semi-Circle: $R SEMICIRCLE (x_f, y_f) 0/1 (1 if counter-clockwise)
+$R SEMICIRCLE (100,0) 0
+
+# Relative Polygon: $R POLYGON (x2, y2) ... (xn, yn), 0/1 (closed)
+$R POLYGON (100,0) (0,0) 1
