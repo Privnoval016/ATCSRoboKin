@@ -12,7 +12,7 @@ import numpy as np
 from enum import Enum
 from InstructionParser import parse_instruction_file
 import sys
-from mecanum import *
+#from mecanum import *
 
 
 # Enum for the plots
@@ -435,14 +435,22 @@ def start():
     scaled_vx = np.empty(0)
     scaled_vy = np.empty(0)
     for i in range(len(points)):
-        u = change_basis([points[i][3], rotate_vector(points[i][3], 90)], points[i][1])
-        scaled_vx = np.append(scaled_vx, u[1])
-        scaled_vy = np.append(scaled_vy, -u[0])
+        angle = np.arctan2(points[i][3][1], points[i][3][0])
+        u = rotate_vector(points[i][1], -np.degrees(angle))
+        scaled_vx = np.append(scaled_vx, u[0])
+        scaled_vy = np.append(scaled_vy, u[1])
+        # u = change_basis([points[i][3], rotate_vector(points[i][3], 90)], points[i][1])
+        # scaled_vx = np.append(scaled_vx, u[1])
+        # scaled_vy = np.append(scaled_vy, -u[0])
 
     omega = find_omega(points[:, 3, :])
     wheel_speeds = np.transpose(calculate_wheel_speeds(omega, scaled_vx,
                                                        scaled_vy,
                                                        x_extent, y_extent))
+
+    print(omega)
+    print(scaled_vx)
+    print(scaled_vy)
 
     min = wheel_speeds.min()
     max = wheel_speeds.max()
@@ -453,7 +461,7 @@ def start():
 
 
     global max_speed
-    max_speed = 2
+    max_speed = 100
 
     setup_plot()
 
@@ -471,7 +479,7 @@ def update(frame):
                              color='blue', scale=1, scale_units='xy',
                              angles='xy')
 
-    change_speed(wheel_speeds[frame])
+    #change_speed(wheel_speeds[frame])
 
     plot_wheels(axd, wheel_names, wheel_speeds[frame], max_speed)
 
@@ -508,16 +516,16 @@ def main():
 
     start()
 
-    for i in range(0, len(points)):
+    for i in range(0, len(points) - 1):
         update(i)
         plt.pause(time_per_update)
 
-    coast_car()
+    #coast_car()
 
     plt.show()
 
     pwmOEn = 1
-    GPIO.cleanup()
+    #GPIO.cleanup()
 
 
 if __name__ == "__main__":
@@ -526,7 +534,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         plt.close()
         print("Simulation stopped.")
-        coast_car()
+        #coast_car()
         pwmOEn = 1
-        GPIO.cleanup()
+        #GPIO.cleanup()
         exit(0)
