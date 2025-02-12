@@ -12,7 +12,7 @@ import numpy as np
 from enum import Enum
 from InstructionParser import parse_instruction_file
 import sys
-#from mecanum import *
+from mecanum import *
 
 
 # Enum for the plots
@@ -479,7 +479,7 @@ def update(frame):
                              color='blue', scale=1, scale_units='xy',
                              angles='xy')
 
-    #change_speed(wheel_speeds[frame])
+    change_speed(wheel_speeds[frame])
 
     plot_wheels(axd, wheel_names, wheel_speeds[frame], max_speed)
 
@@ -525,7 +525,7 @@ def main():
     plt.show()
 
     pwmOEn = 1
-    #GPIO.cleanup()
+    GPIO.cleanup()
 
 
 if __name__ == "__main__":
@@ -534,7 +534,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         plt.close()
         print("Simulation stopped.")
-        #coast_car()
+        coast_car()
         pwmOEn = 1
-        #GPIO.cleanup()
+        GPIO.cleanup()
         exit(0)
