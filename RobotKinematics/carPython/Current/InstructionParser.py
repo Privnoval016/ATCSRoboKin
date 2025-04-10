@@ -21,12 +21,13 @@ def parse_instruction_file(file_name):
         "ANG_STEP": 10,
         "TIME_SCALE": 0.1,
         "AUTO_TURN": False,
-        "X_EXTENT": 0.105,
-        "Y_EXTENT": 0.150,
+        "X_EXTENT": 0.100,
+        "Y_EXTENT": 0.133,
         "PLOT_VEL": True,
         "PLOT_DIR": True,
         "LIN_VEL": 1,
-        "ANG_VEL": 90
+        "ANG_VEL": 90,
+        "RADIUS": 0.04
     }
 
     rot_type = ["MATCH_VELOCITY", 0]
@@ -38,6 +39,7 @@ def parse_instruction_file(file_name):
         "SEMICIRCLE": 3,
         "LINE": 4,
         "POINT_TURN": 5,
+        "SPLINE": 6,
     }
 
     with open(file_name) as f:
@@ -81,56 +83,58 @@ def parse_instruction_file(file_name):
 
             instruction = instruction[:-1]
 
-        match command:
-            case "$D":
-                default_params[instruction[1].upper()] = float(instruction[2])
+        if command == "$D":
+            default_params[instruction[1].upper()] = float(instruction[2])
 
-            case "$S":
+        elif command == "$S":
+            params = [(float(instruction[i]), float(instruction[i+1]))
+                      for i in range(2, len(instruction), 2)]
+            op = operation_dict[instruction[1].upper()]
+            operations.append((op, params, rot_type))
+
+        elif command == "$A":
+            if instruction[1].isdigit():
+                op = int(instruction[1])
+            else:
+                op = operation_dict[instruction[1].upper()]
+
+            # combine pairs of arguments into a tuple
+
+            if len(instruction) == 3:
+                params = [float(instruction[2])]
+            elif len(instruction) % 2 == 1:
+                params = [(float(instruction[i]), float(instruction[i+1]))
+                          for i in range(2, len(instruction) - 1, 2)]
+                if is_true(instruction[-1]):
+                    params.append(True)
+                elif is_false(instruction[-1]):
+                    params.append(False)
+            else:
                 params = [(float(instruction[i]), float(instruction[i+1]))
                           for i in range(2, len(instruction), 2)]
+
+            operations.append((op, params, rot_type))
+
+        elif command == "$R":
+            if instruction[1].isdigit():
+                op = int(instruction[1])
+            else:
                 op = operation_dict[instruction[1].upper()]
-                operations.append((op, params, rot_type))
 
-            case "$A":
-                if instruction[1].isdigit():
-                    op = int(instruction[1])
-                else:
-                    op = operation_dict[instruction[1].upper()]
+            # combine pairs of arguments into a tuple
+            if len(instruction) % 2 == 1:
+                params = [(float(instruction[i]), float(instruction[i+1]))
+                          for i in range(2, len(instruction) - 1, 2)]
+                if is_true(instruction[-1]):
+                    params.append(True)
+                elif is_false(instruction[-1]):
+                    params.append(False)
+            else:
+                params = [(float(instruction[i]), float(instruction[i+1]))
+                          for i in range(2, len(instruction), 2)]
 
-                # combine pairs of arguments into a tuple
-                if len(instruction) % 2 == 1:
-                    params = [(float(instruction[i]), float(instruction[i+1]))
-                              for i in range(2, len(instruction) - 1, 2)]
-                    if is_true(instruction[-1]):
-                        params.append(True)
-                    elif is_false(instruction[-1]):
-                        params.append(False)
-                else:
-                    params = [(float(instruction[i]), float(instruction[i+1]))
-                              for i in range(2, len(instruction), 2)]
+            params.insert(0, 0)
 
-                operations.append((op, params, rot_type))
-
-            case "$R":
-                if instruction[1].isdigit():
-                    op = int(instruction[1])
-                else:
-                    op = operation_dict[instruction[1].upper()]
-
-                # combine pairs of arguments into a tuple
-                if len(instruction) % 2 == 1:
-                    params = [(float(instruction[i]), float(instruction[i+1]))
-                              for i in range(2, len(instruction) - 1, 2)]
-                    if is_true(instruction[-1]):
-                        params.append(True)
-                    elif is_false(instruction[-1]):
-                        params.append(False)
-                else:
-                    params = [(float(instruction[i]), float(instruction[i+1]))
-                              for i in range(2, len(instruction), 2)]
-
-                params.insert(0, 0)
-
-                operations.append((op, params, rot_type))
+            operations.append((op, params, rot_type))
 
     return operations, default_params

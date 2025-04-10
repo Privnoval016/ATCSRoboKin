@@ -1,8 +1,8 @@
 # Example file
 
-$D  LIN_VEL 1
-$D  ANG_VEL 90
-$D  TIME_SCALE 0.05
+$D  LIN_VEL 0.5
+$D  ANG_VEL 28.7
+$D  TIME_SCALE 0.1
 $D  AUTO_TURN 1
 $D  PLOT_VEL 1
 $D  PLOT_DIR 1

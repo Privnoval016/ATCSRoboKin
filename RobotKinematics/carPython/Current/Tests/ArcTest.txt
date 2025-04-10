@@ -5,13 +5,11 @@ $D ANG_VEL 180
 $D TIME_SCALE 0.1
 $D AUTO_TURN 1
 $D  PLOT_VEL 1
-$D  PLOT_DIR 1
+$D  PLOT_DIR 0
 $D  X_EXTENT 0.105
 $D  Y_EXTENT 0.150
 
 # denotes the starting position and forward direction of the robot
-$S START (0, 0) (0, 1)
-$A Semicircle (0,0) (4, 0) CW LOCK
-$R Line (4, -4)
-$R Semicircle (0, -4) CCW
+$S START (0, 0) (1, 0) MATCH_VELOCITY
+$A ARC (0, 0) (0, 0.5) (1, 0)
 

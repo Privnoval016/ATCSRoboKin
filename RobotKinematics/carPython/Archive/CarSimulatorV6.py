@@ -364,7 +364,7 @@ def update(frame):
 
 # Main function to run the simulation.
 def main():
-    default_file = "../Current/test.txt"
+    default_file = "../Current/Tests/test.txt"
     n = len(sys.argv)
     if n < 2:
         print("Usage: python3 " + sys.argv[0] + " <instruction_file>")

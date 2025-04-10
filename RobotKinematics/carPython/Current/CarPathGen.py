@@ -1,18 +1,14 @@
-# A car simulator that reads instructions from a file and simulates the
-# movement of a car with mecanum wheels based on the instructions.
-# Red arrows indicate the car's velocity, and blue arrows indicate the car's
-# forward direction. The individual wheel speeds are displayed in to the right.
+#
 __author__ = "Pranav Sukesh"
 __date__ = "2025-01-25"
 
 
 import math
-import matplotlib.pyplot as plt
 import numpy as np
 from enum import Enum
 from InstructionParser import parse_instruction_file
 import sys
-from mecanum import *
+import scipy
 
 
 # Enum for the plots
@@ -76,17 +72,11 @@ def find_omega(forward_dirs):
     final = np.empty(0)
     final = np.append(final, 0)
     for i in range(len(forward_dirs) - 1):
-        angle = np.arccos(np.dot(forward_dirs[i], forward_dirs[i + 1]) /
-                          (np.linalg.norm(forward_dirs[i]) *
-                           np.linalg.norm(forward_dirs[i + 1])))
+        angle = np.arctan2(forward_dirs[i + 1][1], forward_dirs[i + 1][0]) - \
+                np.arctan2(forward_dirs[i][1], forward_dirs[i][0])
 
         if np.cross(forward_dirs[i], forward_dirs[i + 1]) < 0:
             angle = -angle
-
-        # angf = np.arctan2(forward_dirs[i + 1][0], forward_dirs[i + 1][1])
-        # angi = np.arctan2(forward_dirs[i][0], forward_dirs[i][1])
-        #
-        # angle = angf - angi
 
         angle /= time_per_update
 
@@ -156,22 +146,26 @@ def point_turn(center, velocity, begin_vec, rot_ang, omega):
     center = np.array(center)
     begin_vec = np.array(begin_vec)
 
-    num_steps = int(np.abs(rot_ang) / omega) + 1
+    num_steps = int((np.abs(rot_ang) / omega) if omega != 0 else 0) + 1
 
     step = np.linspace(0, rot_ang, num_steps)
 
     rot_points = ([center[0] for x in range(num_steps)],
                   [center[1] for x in range(num_steps)])
 
-    rot_vels = ([velocity[0] for x in range(num_steps)],
-                [velocity[1] for x in range(num_steps)])
+    rot_vels = ([0 for x in range(num_steps)],
+                [0 for x in range(num_steps)])
 
     magnitudes = [0 for x in range(num_steps)]
 
     forward_dirs = np.transpose(np.array(
-        [rotate_vector(begin_vec, x) for x in step]).squeeze())
+        [rotate_vector(begin_vec, x) for x in step]))
+
+    if len(np.shape(forward_dirs)) > 2:
+        forward_dirs = forward_dirs[0, :, :]
 
     final = np.empty((0, 4, 2))
+
     for i in range(num_steps):
         final = np.append(final, np.array([[[rot_points[0][i],
                                              rot_points[1][i]],
@@ -191,13 +185,15 @@ def point_turn_vectors(center, velocity, current_dir, target_dir, omega):
     current_dir = np.array(current_dir)
     target_dir = np.array(target_dir)
 
-    angle_to_turn = np.degrees(np.arccos(np.dot(current_dir, target_dir) / (
-            np.linalg.norm(current_dir) * np.linalg.norm(target_dir))))
+    angle_to_turn = np.degrees((np.arctan2(target_dir[1], target_dir[0]) -
+                                np.arctan2(current_dir[1], current_dir[0])) %
+                               (2 * np.pi))
 
     if np.cross(current_dir, target_dir) < 0:
         angle_to_turn = -angle_to_turn
 
-    return point_turn(center, np.array([0, 0]), current_dir, angle_to_turn, omega)
+    return point_turn(center, np.array([0, 0]), current_dir, angle_to_turn,
+                      omega)
 
 
 # Draws an arc between a start and an end point with an initial tangent vector.
@@ -311,28 +307,36 @@ def compute_polygon(vertices, step_size,
     return poly_points
 
 
-# Sets up the plot with limits such that all points are visible.
-def setup_plot():
-    global fig, axd
-    fig, axd = plt.subplot_mosaic(
-        [[Plt.Main, Plt.Main, Plt.UpperMiddle, Plt.UpperRight],
-         [Plt.Main, Plt.Main, Plt.LowerMiddle, Plt.LowerRight]
-         ], figsize=(8, 4), layout="constrained")
+def compute_spline(targets, step_size, rot_type, begin_dir, point_arr=None):
+    # Convert to numpy arrays
+    targets = np.array([np.array(target) for target in targets])
 
-    x_lim = np.array([points[:, 0, 0].min(), points[:, 0, 0].max()])
-    x_dist = x_lim[1] - x_lim[0]
-    y_lim = np.array([points[:, 0, 1].min(), points[:, 0, 1].max()])
-    y_dist = y_lim[1] - y_lim[0]
-    dist = max(x_dist, y_dist)
+    step = np.linspace(0, 1, num=len(targets))
+    x_func = scipy.interpolate.CubicSpline(step, targets[:, 0])
+    y_func = scipy.interpolate.CubicSpline(step, targets[:, 1])
+    x_t_func = x_func.derivative()
+    y_t_func = y_func.derivative()
 
-    axd[Plt.Main].set_xlim(x_lim[0] - 0.3 * dist, x_lim[1] + 0.3 * dist)
-    axd[Plt.Main].set_ylim(y_lim[0] - 0.3 * dist, y_lim[1] + 0.3 * dist)
+    arc_length = lambda t: np.sqrt(x_t_func(t) ** 2 + y_t_func(t) ** 2)
+    integral = scipy.integrate.quad(arc_length, 0, 1)[0]
 
-    fig.suptitle('Simulator with wheel speed display')
-    plt.style.use('_mpl-gallery-nogrid')
+    num_steps = int(integral / step_size) + 1
+    step = np.linspace(0, 1, num_steps)
 
-    global wheel_names
-    wheel_names = ['fl', 'fr', 'rl', 'rr']
+    def x(t):
+        return x_func(t)
+
+    def y(t):
+        return y_func(t)
+
+    def x_t(t):
+        return x_t_func(t)
+
+    def y_t(t):
+        return y_t_func(t)
+
+    return model_path(x, y, x_t, y_t, step, step_size,
+                      rot_type, begin_dir, point_arr)
 
 
 # Adds a set of points to the current set of points.
@@ -378,8 +382,10 @@ def compute_operation(operation, params, rot_type, step_size):
         return compute_line(params[0], params[1], step_size, rot, begin_dir)
     elif operation == "Point_Turn" or operation == 5:
         return point_turn(points[-1][0],
-                          points[-1][1],
+                          points[-1][1], points[-1][3],
                           params[0], ang_step_size)
+    elif operation == "Spline" or operation == 6:
+        return compute_spline(params, step_size, rot, begin_dir)
     else:
         return np.empty((0, 4, 2))
 
@@ -411,6 +417,7 @@ def plot_wheels(axes, wheel_name, wheel_speed, max_speed, radius=1):
 
 # Calculates individual wheel speeds for mecanum wheels.
 def calculate_wheel_speeds(omega, v_x, v_y, a, b):
+    omega *= 1 * np.pi
     return np.array([v_y + v_x - omega * (a + b),
                      v_y - v_x + omega * (a + b),
                      v_y - v_x - omega * (a + b),
@@ -430,6 +437,13 @@ def start():
                                                       if len(operation) < 4
                                                       else operation[4]))
 
+    for i in range(len(points), 0, -1):
+        if points[i - 1, 3, 0] == 0 and points[i - 1, 3, 1] == 0:
+            points[i - 1, 3, 0] = points[i, 3, 0]
+            points[i - 1, 3, 1] = points[1, 3, 1]
+
+    print(points)
+
     points[:, 2, 0] = points[:, 2, 0] / time_per_update
 
     scaled_vx = np.empty(0)
@@ -439,58 +453,28 @@ def start():
         u = rotate_vector(points[i][1], -np.degrees(angle))
         scaled_vx = np.append(scaled_vx, -u[1])
         scaled_vy = np.append(scaled_vy, u[0])
-        # u = change_basis([points[i][3], rotate_vector(points[i][3], 90)], points[i][1])
-        # scaled_vx = np.append(scaled_vx, u[1])
-        # scaled_vy = np.append(scaled_vy, -u[0])
 
     omega = find_omega(points[:, 3, :])
     wheel_speeds = np.transpose(calculate_wheel_speeds(omega, scaled_vx,
                                                        scaled_vy,
                                                        x_extent, y_extent))
 
-    print(omega)
-    print(scaled_vx)
-    print(scaled_vy)
-    print(wheel_speeds)
+    wheel_speeds /= wheel_rad
+    wheel_speeds = wheel_speeds[1:]
 
-    min = wheel_speeds.min()
-    max = wheel_speeds.max()
-    wheel_speeds = wheel_speeds[0:]
-    for i in range(len(wheel_speeds)):
-        for j in range (len(wheel_speeds[0])):
-            wheel_speeds[i][j] = val_map(wheel_speeds[i][j], 0, max, 0, 100) \
-                if wheel_speeds[i][j] > 0 else val_map(wheel_speeds[i][j], min, 0, -100, 0)
+    map_max = 100
 
+    for i in range(len(wheel_speeds) - 1, 0, -1):
+        for j in range(len(wheel_speeds[0]) - 1, 0, -1):
+            if abs(wheel_speeds[i][j]) > map_max:
 
-    global max_speed
-    max_speed = 100
+                wheel_speeds[i][j] = wheel_speeds[i - 1][j]
 
-    setup_plot()
+    return points, wheel_speeds
 
 
-# Called for each frame. Draws the point at the current frame.
-def update(frame):
-    if plot_vel:
-        axd[Plt.Main].quiver(points[frame][0][0], points[frame][0][1],
-                             points[frame][1][0], points[frame][1][1],
-                             color='red', scale=1, scale_units='xy',
-                             angles='xy')
-    if plot_dir:
-        axd[Plt.Main].quiver(points[frame][0][0], points[frame][0][1],
-                             points[frame][3][0], points[frame][3][1],
-                             color='blue', scale=1, scale_units='xy',
-                             angles='xy')
-
-    change_speed(wheel_speeds[frame])
-
-    plot_wheels(axd, wheel_names, wheel_speeds[frame], max_speed)
-
-    plt.draw()
-
-
-# Main function to run the simulation.
-def main():
-    default_file = "test.txt"
+def read_info():
+    default_file = "Tests/test.txt"
     n = len(sys.argv)
     if n < 2:
         print("Usage: python3 " + sys.argv[0] + " <instruction_file>")
@@ -504,7 +488,7 @@ def main():
     operations = o
 
     global lin_step_size, ang_step_size, time_per_update, auto_point_turn, \
-        x_extent, y_extent, plot_vel, plot_dir
+        x_extent, y_extent, plot_vel, plot_dir, wheel_rad
     time_per_update = d["TIME_SCALE"]
     lin_step_size = d["LIN_VEL"] * time_per_update
     ang_step_size = d["ANG_VEL"] * time_per_update
@@ -513,30 +497,6 @@ def main():
     y_extent = d["Y_EXTENT"]
     plot_vel = d["PLOT_VEL"]
     plot_dir = d["PLOT_DIR"]
+    wheel_rad = d["RADIUS"]
 
-    pwmOEn = 0
-
-    start()
-
-    for i in range(0, len(points)):
-        update(i)
-        plt.pause(time_per_update)
-
-    #coast_car()
-
-    plt.show()
-
-    pwmOEn = 1
-    GPIO.cleanup()
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        plt.close()
-        print("Simulation stopped.")
-        coast_car()
-        pwmOEn = 1
-        GPIO.cleanup()
-        exit(0)
+    return time_per_update, plot_vel, plot_dir, wheel_rad
