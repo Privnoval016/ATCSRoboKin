@@ -79,12 +79,12 @@ class Color:
         return iter((self.r, self.g, self.b, self.a))
 
 
-    def to_tuple(self):
-        return (self.r, self.g, self.b, self.a)
+    def val(self):
+        return self.r, self.g, self.b
 
 
     def to_hex(self):
-        return "#{:02x}{:02x}{:02x}".format(self.r, self.g, self.b,)
+        return "#{:02x}{:02x}{:02x}".format(self.r, self.g, self.b)
 
 
     @staticmethod

@@ -3,8 +3,8 @@
 
 import time
 
-#set up PC9685 osoyoo/AdaFruit
-#from board import SCL,SDA
+# set up PC9685 osoyoo/AdaFruit
+# from board import SCL,SDA
 SCL = 3
 SDA = 2
 
@@ -15,11 +15,16 @@ import busio
 from adafruit_motor import servo
 from adafruit_pca9685 import PCA9685
 
-#create i2c instance
+
+# equivalent of Arduino map()
+def valmap(value, istart, istop, ostart, ostop):
+    return ostart + (ostop - ostart) * ((value - istart) / (istop - istart))
+
+
 i2c = busio.I2C(SCL, SDA)
 
 # Create a simple PCA9685 class instance.
-pca = PCA9685(i2c, address=0x40)
+pca = PCA9685(i2c, address=0x41)
 # You can optionally provide a finer tuned reference clock speed to improve the accuracy of the
 # timing pulses. This calibration will be specific to each board and its environment. See the
 # calibration.py example in the PCA9685 driver.
@@ -44,39 +49,14 @@ pca.frequency = 50
 # The pulse range is 750 - 2250 by default. This range typically gives 135 degrees of
 # range, but the default is to use 180 degrees. You can specify the expected range if you wish:
 # servo7 = servo.Servo(pca.channels[7], actuation_range=135)
+armJoint = [0, 0, 0, 0, 0]
+for i in range(0, 4):
+    armJoint[i] = servo.Servo(pca.channels[i], min_pulse=400, max_pulse=2400)
 
-#mg-995 0 - 180: must use 50Hz (20mS)
-# 0.5 mS -90, 1.5mS 0, 2.5mS +180
-#pca.channels[0].duty_cycle = 0x7FFF #50%, but in pulses 2048 0x7FF
-servo7 = servo.Servo(pca.channels[15], min_pulse=512, max_pulse=2560, actuation_range=180) #MG-995
-
-
-servo7.angle = 90
-time.sleep(1.0)
-
-servo7.angle = 0
-time.sleep(1.0)
-
-servo7.angle = 180
-time.sleep(1.0)
-
+print(armJoint)
 
 # We sleep in the loops to give the servo time to move into position.
-for i in range(120):
-    servo7.angle = i
-    time.sleep(0.03)
-for i in range(120):
-    servo7.angle = 120 - i
-    time.sleep(0.03)
-
-# You can also specify the movement fractionally.
-fraction = 0.0
-while fraction < 1.0:
-    servo7.fraction = fraction
-    fraction += 0.01
-    time.sleep(0.03)
-    
-servo7.angle = 0
-time.sleep(1.0)
+for i in range(0, 4):
+    armJoint[i].angle = 90
 
 pca.deinit()

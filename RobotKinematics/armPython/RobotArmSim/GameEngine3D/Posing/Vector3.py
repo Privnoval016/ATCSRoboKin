@@ -102,8 +102,8 @@ class Vector3:
         return iter(self.vector)
 
 
-    def to_homogeneous(self):
-        return np.append(self.vector, 1)
+    def homogeneous(self, w=1):
+        return np.append(self.vector * w, w)
 
 
     def magnitude(self):
@@ -151,17 +151,20 @@ class Vector3:
             raise TypeError("Unsupported operand type(s) for angle_between: 'Vector3' and '{}'".format(type(other)))
 
 
-    def skew_symmetric(self, angle):
+    def to_rotation(self, angle):
         axis = self.normalized()
-        x, y, z = axis.x(), axis.y(), axis.z()
-
-        K = np.array([
-            [0, -z, y],
-            [z, 0, -x],
-            [-y, x, 0]
-        ])
+        K = axis.skew_symmetric()
 
         I = np.eye(3)
 
         R = I + np.sin(angle) * K + (1 - np.cos(angle)) * (K @ K)
         return R
+
+
+    def skew_symmetric(self):
+        x, y, z = self.x(), self.y(), self.z()
+        return np.array([
+            [0, -z, y],
+            [z, 0, -x],
+            [-y, x, 0]
+        ])

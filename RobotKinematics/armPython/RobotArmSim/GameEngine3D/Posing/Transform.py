@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 
 from RobotArmSim.GameEngine3D.Posing.RotationMatrix import RotationMatrix
 from RobotArmSim.GameEngine3D.Posing.Vector3 import Vector3
@@ -38,22 +39,29 @@ class Transform:
 
 
     def set_position(self, position):
-        # Set the position of the transform
         self.set_homogeneous_matrix(Transform.calculate_homogeneous_matrix(position, self.rotation()))
 
     def set_rotation(self, rotation):
-        # Set the rotation of the transform
         self.set_homogeneous_matrix(Transform.calculate_homogeneous_matrix(self.position(), rotation))
 
+    def set_local_position(self, position):
+        if self.parent is not None:
+            self.set_homogeneous_matrix(self.parent.homogeneous_matrix @ Transform.calculate_homogeneous_matrix(position, self.rotation()))
+        else:
+            self.set_homogeneous_matrix(Transform.calculate_homogeneous_matrix(position, self.rotation()))
+
+    def set_local_rotation(self, rotation):
+        if self.parent is not None:
+            self.set_homogeneous_matrix(self.parent.homogeneous_matrix @ Transform.calculate_homogeneous_matrix(self.position(), rotation))
+        else:
+            self.set_homogeneous_matrix(Transform.calculate_homogeneous_matrix(self.position(), rotation))
+
     def set_homogeneous_matrix(self, matrix):
-        # Set the homogeneous matrix of the transform
         old_global = self.homogeneous_matrix
         self.homogeneous_matrix = matrix
         self.update_child_transforms(old_global)
 
     def set_local_homogeneous_matrix(self, matrix):
-        # Set the local homogeneous matrix of the transform
-        old_global = self.homogeneous_matrix
         if self.parent is not None:
             self.set_homogeneous_matrix(self.parent.homogeneous_matrix @ matrix)
         else:
@@ -61,7 +69,6 @@ class Transform:
 
 
     def set_transform(self, transform):
-        # Set the transform of the transform
         self.set_homogeneous_matrix(transform.homogeneous_matrix)
         self.update_child_transforms(self.homogeneous_matrix)
 
@@ -77,13 +84,11 @@ class Transform:
 
 
     def add_child(self, child):
-        # Add a child transform
         self.childs.append(child)
         child.parent = self
 
 
     def remove_child(self, child):
-        # Remove a child transform
         if child in self.childs:
             self.childs.remove(child)
             child.parent = None
@@ -92,7 +97,6 @@ class Transform:
 
 
     def update_child_transforms(self, old_global):
-        # Update the transforms of all child transforms
         for child in self.childs:
             child.set_homogeneous_matrix( self.homogeneous_matrix @ np.linalg.inv(old_global) @
                 child.homogeneous_matrix)
@@ -100,8 +104,8 @@ class Transform:
 
     def rotate_angle_axis(self, angle, axis):
         turn = axis.normalized()
-        R = turn.skew_symmetric(angle)
-        self.set_rotation(RotationMatrix(R) @ self.rotation())
+        R = RotationMatrix(turn.to_rotation(angle))
+        self.set_rotation(R @ self.rotation())
 
 
     def translate(self, distance, direction):
@@ -110,7 +114,6 @@ class Transform:
 
     @staticmethod
     def calculate_homogeneous_matrix(position, rotation):
-        # Create a 4x4 homogeneous transformation matrix
         R = np.eye(4)
         R[:3, :3] = rotation.matrix
         R[:3, 3] = position.vector
@@ -127,18 +130,6 @@ class Transform:
     def up(self):
         return self.rotation() @ Vector3.up()
 
-    @staticmethod
-    def perspective(fov, aspect, near, far):
-        f = 1 / np.tan(fov / 2)
-        q = far / (far - near)
-
-        return np.array([
-            [f / aspect, 0, 0, 0],
-            [0, f, 0, 0],
-            [0, 0, q, 1],
-            [0, 0, -q * near, 0]
-        ], dtype=np.float32)
-
 
     @staticmethod
     def look_at(pos, target, up):
@@ -152,3 +143,47 @@ class Transform:
         mat[2, :3] = -forward.vector
         mat[:3, 3] = -mat[:3, :3] @ pos.vector
         return mat
+
+
+    @staticmethod
+    def screw(angular_velocity, q):
+        ang_vel_mat = Vector3.skew_symmetric(angular_velocity)
+        screw_mat = np.zeros((4, 4))
+
+        screw_mat[:3, :3] = ang_vel_mat
+        screw_mat[:3, 3] = -angular_velocity.cross(q).vector
+
+        return screw_mat
+
+
+    @staticmethod
+    def twist_to_six_vector(twist):
+        v = twist[:3, 3]
+
+        w_mat = twist[:3, :3]
+        w = np.zeros(3)
+        w[0] = w_mat[2, 1]
+        w[1] = w_mat[0, 2]
+        w[2] = w_mat[1, 0]
+
+        return np.concatenate((w, v))
+
+    @staticmethod
+    def adjoint_map(transform):
+        R = transform[:3, :3]
+        p = Vector3(*transform[:3, 3])
+
+        p_skew = p.skew_symmetric()
+
+        adjoint = np.zeros((6, 6))
+        adjoint[:3, :3] = R
+        adjoint[3:6, 3:6] = R
+        adjoint[3:6, :3] = p_skew @ R
+
+        return adjoint
+
+
+
+
+
+

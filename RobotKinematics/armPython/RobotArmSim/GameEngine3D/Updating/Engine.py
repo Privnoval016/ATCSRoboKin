@@ -5,7 +5,7 @@ from RobotArmSim.GameEngine3D.Rendering.SceneRenderer import SceneRenderer
 
 class Engine:
     def __init__(self):
-        self.delta_time = 0  # Time step for simulation
+        self.delta_time = 0
         self.running = False
         self.updaters = []
         self.last_frame_updaters = []
@@ -15,7 +15,6 @@ class Engine:
 
 
     def add_updater(self, updater):
-        # Add an updater to the world
         self.updaters.append(updater)
 
 
@@ -40,6 +39,9 @@ class Engine:
 
         for updater in true_updaters:
             updater.update()
+
+        for updater in true_updaters:
+            updater.late_update()
 
         self.renderer.post_render()
         self.last_frame_updaters = self.updaters.copy()
@@ -66,6 +68,7 @@ class Engine:
 
 
     def run_game_loop(self):
+        self.running = True
         self.start()
 
         while self.running:

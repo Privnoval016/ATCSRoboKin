@@ -17,5 +17,10 @@ class Updater:
     def update(self):
         pass
 
+    def late_update(self):
+        pass
+
     def add_mesh(self, mesh):
         self.meshes.append(mesh)
+        mesh.transform = self.transform
+        return mesh
