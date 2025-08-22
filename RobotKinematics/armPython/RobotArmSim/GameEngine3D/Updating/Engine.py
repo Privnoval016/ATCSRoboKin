@@ -4,13 +4,13 @@ from RobotArmSim.GameEngine3D.Rendering.SceneRenderer import SceneRenderer
 
 
 class Engine:
-    def __init__(self):
+    def __init__(self, width=800, height=600):
         self.delta_time = 0
         self.running = False
         self.updaters = []
         self.last_frame_updaters = []
 
-        self.renderer = SceneRenderer(self, width=800, height=600)
+        self.renderer = SceneRenderer(self, width, height)
         self.renderer.initialize()
 
 

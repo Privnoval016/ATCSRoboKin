@@ -12,7 +12,7 @@ from RobotArmSim.GameEngine3D.Updating.Engine import Engine
 
 
 def main():
-    engine = Engine()
+    engine = Engine(1920)
     print ("Engine started")
     engine.renderer.camera.transform.set_position(Vector3(-20, 6, -2))
     engine.renderer.camera.transform.set_rotation(RotationMatrix(0, 0, 0))
