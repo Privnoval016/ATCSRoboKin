@@ -34,10 +34,6 @@ class InverseKinematics:
 
         theta %= 2 * np.pi
 
-        # for i, t in enumerate(theta):
-        #     if np.pi / 2 < t <= np.pi: theta[i] = np.pi / 2
-        #     elif np.pi < t < 3 * np.pi / 2: theta[i] = 3 * np.pi / 2
-
         if iterations >= max_iterations:
             print("IK calculation did not converge within the maximum iterations.")
             print(f"Final linear error: {lin_error}, Final angular error: {ang_error}")

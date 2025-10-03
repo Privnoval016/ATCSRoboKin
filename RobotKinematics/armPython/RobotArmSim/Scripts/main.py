@@ -23,8 +23,8 @@ def main():
     camera_controller = CameraController(engine, engine.renderer.camera)
 
     among = Updater(engine)
-    among.add_mesh(Mesh.obj_wireframe("/Users/pranavsukesh/Documents/GitHub/ATCSRoboKin/RobotKinematics/armPython/RobotArmSim/Assets/rick.obj",
-                                      among.transform, wireframe=False))
+    among.add_mesh(Mesh.obj_wireframe("/Users/pranavsukesh/Documents/GitHub/ATCSRoboKin/RobotKinematics/armPython/RobotArmSim/Assets/AmongUs.obj",
+                                      among.transform, wireframe=True))
 
     engine.run_game_loop()
 
