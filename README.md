@@ -9,6 +9,12 @@ Given a 4-axis robotic arm controlled by a Raspberry Pi, I implemented a simulat
 To run:
 Clone the repository and run
 ```
-python3 RobotKinematics/armPython/main.py [filepath]
+python3 RobotKinematics/armPython/main.py "filepath"
 ```
 to render a 3D model specified by the filepath. If none is specified, it will open a certain model from the assets folder.
+
+To run the inverse kinematics simulator, run
+```
+python3 RobotKinematics/armPython/ArmMain,py "(x_pos, y_pos, z_pos), (x_euler, y_euler, z_euler)"
+```
+to run inverse kinematics the 4 axis arm, aiming for the gripper to reach the specified target position and rotation as specified by the argument.
