@@ -13,8 +13,18 @@ from RobotArmSim.Scripts.Joints.RevoluteJoint import RevoluteJoint
 
 
 class RoboticArm(Updater):
-    def __init__(self, engine=None, angular_velocity=1, joint_limits=None):
+    def __init__(self, engine=None, angular_velocity=1, joint_limits=None, ik_target_pos=None, ik_target_rot=None):
         super().__init__(engine)
+
+        if ik_target_pos is None:
+            self.ik_target_pos = Vector3(0, 15, 12.1)
+        else:
+            self.ik_target_pos = ik_target_pos
+        if ik_target_rot is None:
+            self.ik_target_rot = RotationMatrix(0, 0, 0, True)
+        else:
+            self.ik_target_rot = ik_target_rot
+
         self.gripper = None
         self.colors = None
         self.joints = []
@@ -68,8 +78,7 @@ class RoboticArm(Updater):
 
         fk, jacobian = self.gripper.forward_kinematics()
         theta = InverseKinematics.calculate_ik(4, fk, jacobian,
-                                       Transform(Vector3(0, 15, 12.1),
-                                                 RotationMatrix(0, 0, 0, True)), 10)
+                                       Transform(self.ik_target_pos, self.ik_target_rot), 10)
 
         print(f"Final Joint Angles (in degrees): {self.rads_to_joint_ranges(theta)}")
         output_transform = Transform()
